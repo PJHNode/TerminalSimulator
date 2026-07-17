@@ -152,12 +152,24 @@ instead of being clipped at the edge of the screen.
 
 The JVM's default output encoding follows the Windows console codepage, not
 UTF-8. On a codepage like MS949 (Korean) or CP437, `█` and `—` can't be
-represented and print as `?` instead. To handle this, `ConsoleUtil` switches
-the console to UTF-8 on startup (`chcp 65001`, only on Windows) and writes to
-`System.out` through an explicit UTF-8 `PrintStream`. macOS and Linux skip
-this step since their terminals default to UTF-8 already. The `chcp` helper
-process is deliberately kept off the real stdin — sharing it would risk
-swallowing the first keystrokes typed into `InteractiveGameOfLife`.
+represented and print as garbled multi-byte text instead. To handle this,
+`ConsoleUtil` switches the console to UTF-8 on startup (`chcp 65001`, only on
+Windows) and writes to `System.out` through an explicit UTF-8 `PrintStream`.
+macOS and Linux skip this step since their terminals default to UTF-8
+already.
+
+The `chcp` helper's stdout/stderr are inherited from the real console on
+purpose — if they aren't, Windows runs the helper against a hidden,
+disconnected console, and the codepage change never reaches the window
+you're actually looking at. Its stdin is separately pointed at the `NUL`
+device (not inherited), so it can't consume any of the real input meant for
+`InteractiveGameOfLife`.
+
+If the grid still renders as garbled text after this, or the screen scrolls
+instead of redrawing in place, your terminal likely isn't processing ANSI
+escape codes at all (common on an older `cmd.exe` window rather than Windows
+Terminal). Try running from Windows Terminal or PowerShell instead, or run
+`chcp 65001` by hand once in that window before launching the program.
 
 ## Configuration
 
