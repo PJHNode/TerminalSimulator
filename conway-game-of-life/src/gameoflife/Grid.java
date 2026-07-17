@@ -2,7 +2,6 @@ package gameoflife;
 
 import java.util.Random;
 
-// Toroidal grid of cells for Conway's Game of Life.
 public class Grid {
 
     private final int width;
@@ -21,7 +20,6 @@ public class Grid {
         this.cells = cells;
     }
 
-    // Randomly populates the grid; each cell is alive with the given probability.
     public void randomize(double aliveProbability) {
         Random random = new Random();
         for (int y = 0; y < height; y++) {
@@ -43,7 +41,7 @@ public class Grid {
         return height;
     }
 
-    // Counts alive neighbors around (x, y), wrapping edges so the grid behaves like a torus.
+    // Wraps at the edges so the grid behaves like a torus.
     public int countAliveNeighbors(int x, int y) {
         int count = 0;
         for (int dy = -1; dy <= 1; dy++) {
@@ -65,7 +63,6 @@ public class Grid {
         return ((value % max) + max) % max;
     }
 
-    // Applies Conway's rules and returns the next generation as a new Grid.
     public Grid nextGeneration() {
         boolean[][] next = new boolean[height][width];
         for (int y = 0; y < height; y++) {

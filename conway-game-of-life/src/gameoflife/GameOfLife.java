@@ -5,7 +5,6 @@ import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 
-// Entry point: drives the simulation loop and renders the grid to the terminal.
 public class GameOfLife {
 
     private static final int WIDTH = 80;
