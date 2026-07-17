@@ -15,16 +15,60 @@ the animation never flickers.
 
 ## How to run
 
-From the `conway-game-of-life` directory:
+**1. Check you have a JDK installed:**
+
+```bash
+java -version
+javac -version
+```
+
+If either command isn't found, install a JDK (e.g. [Adoptium
+Temurin](https://adoptium.net/)) and make sure `java`/`javac` are on your
+`PATH`.
+
+**2. Get the code, if you haven't already:**
+
+```bash
+git clone https://github.com/PJHNode/TerminalSimulator.git
+cd TerminalSimulator/conway-game-of-life
+```
+
+**3. Compile:**
 
 ```bash
 javac -encoding UTF-8 -d out src/gameoflife/*.java
-java -cp out gameoflife.GameOfLife
 ```
 
 `-encoding UTF-8` is required because the source contains the `█` and `—`
-characters directly. Press `Ctrl+C` to stop; the terminal cursor is restored
-automatically on exit.
+characters directly — without it, `javac` fails with "unmappable character"
+errors. This produces compiled classes under `out/gameoflife/`.
+
+**4. Run:**
+
+```bash
+java -cp out gameoflife.GameOfLife
+```
+
+You'll see the branding line print first:
+
+```
+Conway's Game of Life — Made by JUNEHYUN
+```
+
+After a 2-second pause, the terminal fills with an 80×24 grid of randomly
+placed `█` cells that animates in place, with a status line below it:
+
+```
+Generation: 42 | Alive cells: 187
+```
+
+**5. Stop it:** press `Ctrl+C`. The loop runs forever otherwise, since there's
+no win/end condition — it's a live simulation, not a program with a fixed
+output. The terminal cursor, hidden while the simulation runs, is restored
+automatically when the process exits.
+
+If the grid renders as `?` characters instead of blocks, see [Windows console
+encoding](#windows-console-encoding) below.
 
 ## Project structure
 
