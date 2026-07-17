@@ -33,6 +33,10 @@ public class Grid {
         return cells[y][x];
     }
 
+    public void toggle(int x, int y) {
+        cells[y][x] = !cells[y][x];
+    }
+
     public int getWidth() {
         return width;
     }

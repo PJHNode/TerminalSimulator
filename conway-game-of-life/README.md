@@ -1,9 +1,13 @@
 # Conway's Game of Life (Terminal Edition)
 
-A terminal-rendered implementation of Conway's Game of Life, written in pure
-Java with zero external dependencies. The simulation runs forever, redrawing
-the grid in place with ANSI escape codes so the terminal never scrolls and
-the animation never flickers.
+Conway's Game of Life, written in pure Java with zero external dependencies.
+There are two entry points, both plain console programs — no browser, no GUI
+toolkit:
+
+- **`GameOfLife`** — starts from a random pattern and animates forever,
+  flicker-free, until you hit `Ctrl+C`.
+- **`InteractiveGameOfLife`** — you place and remove cells yourself by typing
+  coordinates, then start/stop/step the simulation on command.
 
 > Conway's Game of Life — Made by JUNEHYUN
 
@@ -43,29 +47,53 @@ javac -encoding UTF-8 -d out src/gameoflife/*.java
 characters directly — without it, `javac` fails with "unmappable character"
 errors. This produces compiled classes under `out/gameoflife/`.
 
-**4. Run:**
+**4. Run one of the two entry points:**
 
 ```bash
+# Automatic: random start, animates forever
 java -cp out gameoflife.GameOfLife
+
+# Interactive: you place the cells
+java -cp out gameoflife.InteractiveGameOfLife
 ```
 
-You'll see the branding line print first:
+### Automatic mode
+
+After a 2-second branding pause, the terminal fills with an 80×24 grid of
+randomly placed `█` cells that animates in place, with a status line below
+it (`Generation: 42 | Alive cells: 187`). Press `Ctrl+C` to stop — there's no
+end condition, it's a live simulation. The cursor, hidden while it runs, is
+restored automatically on exit.
+
+### Interactive mode
+
+The board starts empty. A coordinate ruler runs along the top and left edge
+so you know which `x y` to type:
 
 ```
-Conway's Game of Life — Made by JUNEHYUN
+     0000000000111111111122222222223333333333
+     0123456789012345678901234567890123456789
+  0  ........................................
+  1  ........................................
+  2  ..███...................................
 ```
 
-After a 2-second pause, the terminal fills with an 80×24 grid of randomly
-placed `█` cells that animates in place, with a status line below it:
+Type a command and press Enter:
 
-```
-Generation: 42 | Alive cells: 187
-```
+| Command | Effect |
+|---------|--------|
+| `x y` | toggle the cell at column `x`, row `y` (e.g. `5 3`) |
+| `s` | start running continuously |
+| `p` | pause |
+| `n` | advance exactly one generation (only while paused) |
+| `r` | fill the board with a random ~30% pattern |
+| `c` | clear the board |
+| `q` | quit |
 
-**5. Stop it:** press `Ctrl+C`. The loop runs forever otherwise, since there's
-no win/end condition — it's a live simulation, not a program with a fixed
-output. The terminal cursor, hidden while the simulation runs, is restored
-automatically when the process exits.
+You can keep toggling cells while it's running — the terminal has no live
+mouse/keystroke input in pure Java, so drawing happens between generations
+rather than mid-frame, but the effect is the same: type coordinates, hit
+Enter, watch it take effect on the next generation.
 
 If the grid renders as `?` characters instead of blocks, see [Windows console
 encoding](#windows-console-encoding) below.
@@ -79,23 +107,31 @@ conway-game-of-life/
 └── src/
     └── gameoflife/
         ├── Grid.java
-        └── GameOfLife.java
+        ├── ConsoleUtil.java
+        ├── GameOfLife.java
+        └── InteractiveGameOfLife.java
 ```
 
 ## How it works
 
 `Grid` holds the cell state and knows how to count neighbors, randomize
-itself, and compute the next generation. `nextGeneration()` returns a new
-`Grid` instead of mutating in place, so each generation is a clean snapshot.
+itself, toggle a single cell, and compute the next generation.
+`nextGeneration()` returns a new `Grid` instead of mutating in place, so each
+generation is a clean snapshot.
 
-`GameOfLife` is the entry point. It creates the grid, then loops: render the
-current generation, advance to the next one, sleep for the frame interval.
+`GameOfLife` renders automatically: each frame is assembled into a single
+string and written to `System.out` in one call, with the cursor moved back
+to the top-left corner (`ESC[H`) instead of clearing the screen — since every
+frame has the same dimensions, this is flicker-free.
 
-Each frame is assembled into a single string and written to `System.out` in
-one call. Instead of clearing the screen every frame, the cursor is moved
-back to the top-left corner (`ESC[H`) and the previous frame is simply
-overwritten — since every frame has the same dimensions, this is flicker-free.
-Alive cells are drawn as `█` (U+2588), dead cells as a space.
+`InteractiveGameOfLife` reads commands from a `Scanner` on the main thread.
+`s` spawns a background thread that steps and reprints the board on a timer;
+`p` stops it. Both threads only ever touch the grid inside a shared lock, so
+typing a coordinate while the simulation is running can't corrupt a
+generation that's mid-computation.
+
+`ConsoleUtil` holds the Windows UTF-8 console setup shared by both entry
+points (see below).
 
 ### Simulation rules
 
@@ -116,14 +152,18 @@ instead of being clipped at the edge of the screen.
 
 The JVM's default output encoding follows the Windows console codepage, not
 UTF-8. On a codepage like MS949 (Korean) or CP437, `█` and `—` can't be
-represented and print as `?` instead. To handle this, `GameOfLife` switches
+represented and print as `?` instead. To handle this, `ConsoleUtil` switches
 the console to UTF-8 on startup (`chcp 65001`, only on Windows) and writes to
 `System.out` through an explicit UTF-8 `PrintStream`. macOS and Linux skip
-this step since their terminals default to UTF-8 already.
+this step since their terminals default to UTF-8 already. The `chcp` helper
+process is deliberately kept off the real stdin — sharing it would risk
+swallowing the first keystrokes typed into `InteractiveGameOfLife`.
 
 ## Configuration
 
-Tunable constants live at the top of `GameOfLife.java`:
+Tunable constants live at the top of each entry point's source file:
+
+**`GameOfLife.java`**
 
 | Constant             | Default | Meaning |
 |------------------------|---------|---------|
@@ -131,3 +171,11 @@ Tunable constants live at the top of `GameOfLife.java`:
 | `HEIGHT`                | `24`     | grid rows |
 | `ALIVE_PROBABILITY`     | `0.3`    | chance each cell starts alive |
 | `FRAME_DELAY_MS`        | `100`    | milliseconds between generations |
+
+**`InteractiveGameOfLife.java`**
+
+| Constant             | Default | Meaning |
+|------------------------|---------|---------|
+| `WIDTH`                 | `40`     | grid columns |
+| `HEIGHT`                | `20`     | grid rows |
+| `FRAME_DELAY_MS`        | `300`    | milliseconds between generations while running |

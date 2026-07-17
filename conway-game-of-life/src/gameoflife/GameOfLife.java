@@ -1,10 +1,5 @@
 package gameoflife;
 
-import java.io.FileDescriptor;
-import java.io.FileOutputStream;
-import java.io.PrintStream;
-import java.nio.charset.StandardCharsets;
-
 public class GameOfLife {
 
     private static final int WIDTH = 80;
@@ -20,7 +15,7 @@ public class GameOfLife {
     private static final String SHOW_CURSOR = "[?25h";
 
     public static void main(String[] args) throws InterruptedException {
-        configureUtf8Console();
+        ConsoleUtil.configureUtf8Console();
         showBranding();
 
         // Restore the cursor if the user stops the loop with Ctrl+C.
@@ -39,19 +34,6 @@ public class GameOfLife {
             generation++;
             Thread.sleep(FRAME_DELAY_MS);
         }
-    }
-
-    // On Windows, the console codepage (not just System.out) must be switched to UTF-8,
-    // otherwise block/dash characters render as "?" regardless of PrintStream encoding.
-    private static void configureUtf8Console() {
-        if (System.getProperty("os.name", "").toLowerCase().contains("win")) {
-            try {
-                new ProcessBuilder("cmd.exe", "/c", "chcp", "65001").inheritIO().start().waitFor();
-            } catch (Exception e) {
-                // Console codepage could not be changed; continue with the current one.
-            }
-        }
-        System.setOut(new PrintStream(new FileOutputStream(FileDescriptor.out), true, StandardCharsets.UTF_8));
     }
 
     private static void showBranding() throws InterruptedException {
